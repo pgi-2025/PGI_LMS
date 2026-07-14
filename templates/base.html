@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}PGI LMS{% endblock %} — Plant Green Inertia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/main.css">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">
+      <img src="{{ url_for('static', filename='pgilogo.png') }}" alt="PGI Logo">
+    </div>
+    <div class="sidebar-logo-text">
+      <div class="brand">PLANT GREEN<br>INERTIA</div>
+      <div class="sub">Learning Management</div>
+    </div>
+  </div>
+
+  <a href="/edit-profile" class="edit-profile-btn" title="Edit Profile">
+  <div class="sidebar-user">
+    <div class="sidebar-avatar"></div>
+    <div class="sidebar-user-info">
+      <div class="name sidebar-username"></div>
+    </div>
+    <span style="margin-left:auto;color:rgba(255,255,255,0.3);font-size:14px">›</span>
+  </div>
+  </a>
+
+  <div class="sidebar-xp">
+    <div class="xp-label">
+      <span>XP Progress</span>
+      <span class="xp-label-text">0 / 1000</span>
+    </div>
+    <div class="xp-track"><div class="xp-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="sidebar-search">
+    <span class="search-icon">🔍</span>
+    <input type="text" name="prevent_autofill" style="display:none;" aria-hidden="true"><input type="email" name="prevent_email" style="display:none;" aria-hidden="true"><input type="text" placeholder="Search courses, lessons…" id="sidebar-search" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')">
+  </div>
+
+  <nav>
+    <div class="nav-section">
+      <div class="nav-section-title">Overview</div>
+      <a href="/dashboard" class="nav-item">
+        <span class="nav-icon">🏠</span> Dashboard
+      </a>
+      <a href="/schedule" class="nav-item" id="nav-schedule">
+        <span class="nav-icon">📅</span> Schedule
+      </a>
+      <a href="/notifications" class="nav-item" onclick="openNotifPanel(event)" id="nav-notifications">
+        <span class="nav-icon">🔔</span> Notifications
+        <span class="nav-badge" id="notif-badge" style="display:none">4</span>
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Learning</div>
+      <a href="/my-courses" class="nav-item" id="nav-courses">
+        <span class="nav-icon">📚</span> My Courses
+        <span class="nav-badge green">3</span>
+      </a>
+      <a href="/assignments" class="nav-item" id="nav-assignments">
+        <span class="nav-icon">📝</span> Assignments
+        <span class="nav-badge" id="assign-badge" style="display:none">2</span>
+      </a>
+      <a href="/quiz" class="nav-item" id="nav-quiz">
+        <span class="nav-icon">🧠</span> Quiz & Tests
+      </a>
+      <a href="/leaderboard" class="nav-item">
+        <span class="nav-icon">🏆</span> Leaderboard
+      </a>
+      <a href="/certifications" class="nav-item">
+        <span class="nav-icon">🎓</span> Certifications
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Account</div>
+      <a href="/profile" class="nav-item">
+        <span class="nav-icon">👤</span> Profile
+      </a>
+      <a href="/settings" class="nav-item">
+        <span class="nav-icon">⚙️</span> Settings
+      </a>
+    </div>
+  </nav>
+
+  <div class="sidebar-bottom">
+    <div class="storage-info">
+  <div class="storage-label">☁️ Cloud Storage</div>
+  <div class="storage-bar">
+    <div class="storage-fill" id="storage-fill" style="width:0%"></div>
+  </div>
+  <div class="storage-text" id="storage-text">Loading…</div>
+</div>
+    <a class="nav-item" href="#" id="logout-btn">
+      <span class="nav-icon">🚪</span> Sign Out
+    </a>
+  </div>
+</aside>
+
+<!-- ── Main ────────────────────────────────────────────── -->
+<div class="main-content">
+  <!-- Topbar -->
+  <header class="topbar">
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-title">
+      <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+      <p>{% block page_subtitle %}Good afternoon!{% endblock %}</p>
+    </div>
+    <div class="topbar-actions">
+      <div class="streak-badge">
+        🔥 <span class="streak-count">0</span> day streak
+      </div>
+      <div style="position:relative">
+        <button class="icon-btn" id="notif-btn" title="Notifications">
+          🔔
+          <span class="dot notif-dot" style="display:none"></span>
+        </button>
+        <!-- Notification Dropdown -->
+        <div class="notif-dropdown" id="notif-dropdown">
+          <div class="notif-header">
+            Notifications
+            <span style="font-size:12px;color:var(--text-muted);font-weight:400;cursor:pointer" onclick="markAllRead()">Mark all read</span>
+          </div>
+          <div class="notif-body">
+            <div class="empty-state" style="padding:20px"><div class="empty-icon">🔔</div><p>Loading…</p></div>
+          </div>
+        </div>
+      </div>
+      <button class="icon-btn" title="Search" onclick="window.location.href='/my-courses'">🔍</button>
+      <button class="icon-btn" title="Profile" onclick="window.location.href='/profile'">🌿</button>
+    </div>
+  </header>
+
+  <!-- Page Body -->
+  <div class="page-content">
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="/static/js/main.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

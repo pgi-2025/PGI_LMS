@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+{% block page_subtitle %}Your learning identity and achievements{% endblock %}
+
+{% block extra_css %}
+<style>
+.profile-layout{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start}
+.profile-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-sm)}
+.profile-banner{height:90px;background:linear-gradient(135deg,var(--green-700),var(--green-500))}
+.profile-avatar-wrap{display:flex;justify-content:center;margin-top:-40px;margin-bottom:12px;position:relative}
+.profile-avatar{width:80px;height:80px;border-radius:50%;background:var(--green-500);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;border:4px solid var(--bg-card);font-family:var(--font-display)}
+.profile-avatar img{width:80px;height:80px;border-radius:50%;object-fit:cover;border:4px solid var(--bg-card)}
+.profile-info{text-align:center;padding:0 20px 20px}
+.profile-name{font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--text-dark)}
+.profile-username{font-size:13px;color:var(--text-muted);margin-top:2px}
+.profile-bio{font-size:13px;color:var(--text-mid);margin:12px 0;line-height:1.6}
+.profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--border);margin-top:12px}
+.pstat{text-align:center;padding:14px 8px;border-right:1px solid var(--border)}
+.pstat:last-child{border-right:none}
+.pstat-val{font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--text-dark)}
+.pstat-lbl{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.level-badge{display:inline-flex;align-items:center;gap:6px;background:var(--green-700);color:#fff;padding:5px 14px;border-radius:99px;font-size:13px;font-weight:700;margin:8px auto 0;font-family:var(--font-display)}
+.xp-section{padding:14px 20px;border-top:1px solid var(--border)}
+.xp-row{display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:6px}
+
+.panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px;box-shadow:var(--shadow-sm);margin-bottom:20px}
+.panel h3{font-family:var(--font-display);font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+
+.badges-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.badge-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-md);text-align:center;transition:all .2s}
+.badge-item:hover{background:var(--green-50);border-color:var(--green-200);transform:translateY(-2px)}
+.badge-item.locked{opacity:.35;filter:grayscale(1)}
+.badge-icon{font-size:30px}
+.badge-name{font-size:11px;font-weight:600;color:var(--text-mid);line-height:1.3}
+.badge-date{font-size:10px;color:var(--text-muted)}
+
+.course-progress-list{display:flex;flex-direction:column;gap:12px}
+.cp-item{display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--bg);border-radius:var(--radius-md);border:1px solid var(--border)}
+.cp-icon{font-size:22px;flex-shrink:0}
+.cp-info{flex:1;min-width:0}
+.cp-title{font-size:13px;font-weight:600;color:var(--text-dark)}
+.cp-cat{font-size:11px;color:var(--text-muted);margin-top:1px}
+.cp-pct{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--green-600);white-space:nowrap}
+
+.streak-heatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:12px}
+.sh-day{aspect-ratio:1;border-radius:3px;background:var(--green-100)}
+.sh-day.active{background:var(--green-500)}
+.sh-day.today{outline:2px solid var(--green-600)}
+
+@media(max-width:900px){.profile-layout{grid-template-columns:1fr}.badges-grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:480px){.badges-grid{grid-template-columns:repeat(3,1fr)}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-layout">
+
+  <!-- Left: profile card -->
+  <div>
+    <div class="profile-card">
+      <div class="profile-banner"></div>
+      <div class="profile-avatar-wrap">
+        <div class="profile-avatar" id="profile-avatar-el">AB</div>
+      </div>
+      <div class="profile-info">
+        <div class="profile-name" id="profile-name">Loading…</div>
+        <div class="profile-username" id="profile-username">@username</div>
+        <div class="level-badge" id="profile-level">⚡ Level 1</div>
+        <div class="profile-bio" id="profile-bio">No bio yet.</div>
+      </div>
+      <div class="profile-stats">
+        <div class="pstat"><div class="pstat-val" id="ps-xp">0</div><div class="pstat-lbl">Total XP</div></div>
+        <div class="pstat"><div class="pstat-val" id="ps-streak">0</div><div class="pstat-lbl">Day Streak</div></div>
+        <div class="pstat"><div class="pstat-val" id="ps-courses">0</div><div class="pstat-lbl">Courses</div></div>
+      </div>
+      <div class="xp-section">
+        <div class="xp-row"><span>XP Progress</span><span id="xp-fraction">0 / 1000 XP</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="xp-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- Streak heatmap -->
+    <div class="panel" style="margin-top:20px">
+      <h3>🔥 Study Streak</h3>
+      <div class="streak-heatmap" id="streak-heatmap"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--text-muted)">
+        <span>Current: <strong id="streak-current">0</strong> days</span>
+        <span>Best: <strong id="streak-best">0</strong> days</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: badges + courses -->
+  <div>
+    <!-- Badges -->
+    <div class="panel">
+      <h3>🏆 Achievements & Badges</h3>
+      <div class="badges-grid" id="badges-grid">
+        <div class="skeleton" style="height:90px;border-radius:var(--radius-md)"></div>
+        <div class="skeleton" style="height:90px;border-radius:var(--radius-md)"></div>
+        <div class="skeleton" style="height:90px;border-radius:var(--radius-md)"></div>
+        <div class="skeleton" style="height:90px;border-radius:var(--radius-md)"></div>
+      </div>
+    </div>
+
+    <!-- Course Progress -->
+    <div class="panel">
+      <h3>📚 Course Progress</h3>
+      <div class="course-progress-list" id="course-list">
+        <div class="skeleton" style="height:60px;border-radius:var(--radius-md)"></div>
+        <div class="skeleton" style="height:60px;border-radius:var(--radius-md)"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const ALL_BADGES = [
+  {icon:'🚀',name:'First Login',  desc:'Joined the platform'},
+  {icon:'🔥',name:'7-Day Streak', desc:'7 days in a row'},
+  {icon:'📚',name:'10 Lessons',   desc:'Completed 10 lessons'},
+  {icon:'⚡',name:'500 XP Club',  desc:'Earned 500 XP'},
+  {icon:'🏆',name:'Course Master',desc:'Finished a course'},
+  {icon:'🎯',name:'Quiz Ace',     desc:'Scored 100% on quiz'},
+  {icon:'💎',name:'30-Day Streak',desc:'30 days in a row'},
+  {icon:'👑',name:'1000 XP',      desc:'Earned 1000 XP'},
+];
+
+function initials(name){ return (name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase(); }
+function getCourseIcon(t){
+  t=(t||'').toLowerCase();
+  if(t.includes('web')||t.includes('html')) return '💻';
+  if(t.includes('ai')||t.includes('machine')) return '🤖';
+  if(t.includes('design')||t.includes('ui')) return '🎨';
+  if(t.includes('data')||t.includes('python')) return '📊';
+  if(t.includes('cloud')||t.includes('aws')) return '☁️';
+  if(t.includes('devops')||t.includes('docker')) return '⚙️';
+  return '📚';
+}
+
+async function loadProfile(){
+  const me = await api.get('/api/user/me');
+  if(!me) return;
+
+  // avatar
+  const av = document.getElementById('profile-avatar-el');
+  if(me.avatar_url){ av.innerHTML=`<img src="${me.avatar_url}" alt="avatar">`; }
+  else { av.textContent = initials(me.full_name); }
+
+  document.getElementById('profile-name').textContent     = me.full_name;
+  document.getElementById('profile-username').textContent = '@' + me.username;
+  document.getElementById('profile-level').textContent    = '⚡ Level ' + me.level;
+  document.getElementById('profile-bio').textContent      = me.bio || 'No bio yet. Add one in Settings.';
+  document.getElementById('ps-xp').textContent            = me.xp;
+  document.getElementById('ps-streak').textContent        = me.streak_days;
+  document.getElementById('xp-fraction').textContent      = `${me.xp} / ${me.xp_max} XP`;
+  document.getElementById('xp-fill').style.width          = Math.round(me.xp/me.xp_max*100)+'%';
+  document.getElementById('streak-current').textContent   = me.streak_days;
+  document.getElementById('streak-best').textContent      = Math.max(me.streak_days, 12);
+
+  // Profile API for badges + courses
+  const data = await api.get(`/api/profile/${me.id}`);
+  if(!data) return;
+
+  document.getElementById('ps-courses').textContent = data.courses.length;
+
+  // Badges — fuzzy match (case-insensitive, ignore spaces/dashes/underscores)
+  const normalize = s => (s||'').toLowerCase().replace(/[\s_\-]/g,'');
+  const apiBadges = data.badges || [];
+
+  // Auto-unlock badges derivable from user stats (in case API doesn't return them)
+  const autoUnlocked = new Set();
+  if (me) {
+    autoUnlocked.add(normalize('First Login'));                        // always earned
+    if (me.xp >= 500)          autoUnlocked.add(normalize('500 XP Club'));
+    if (me.xp >= 1000)         autoUnlocked.add(normalize('1000 XP'));
+    if (me.streak_days >= 7)   autoUnlocked.add(normalize('7-Day Streak'));
+    if (me.streak_days >= 30)  autoUnlocked.add(normalize('30-Day Streak'));
+  }
+
+  document.getElementById('badges-grid').innerHTML = ALL_BADGES.map(b=>{
+    const normName = normalize(b.name);
+    const earnedBadge = apiBadges.find(x => normalize(x.title) === normName);
+    const earned = !!earnedBadge || autoUnlocked.has(normName);
+    const dateStr = earnedBadge?.earned_at ? earnedBadge.earned_at.slice(0,10) : '';
+    return `<div class="badge-item ${earned?'':'locked'}" title="${b.desc}">
+      <div class="badge-icon">${b.icon}</div>
+      <div class="badge-name">${b.name}</div>
+      <div class="badge-date">${earned ? (dateStr || '✓ Earned') : 'Locked'}</div>
+    </div>`;
+  }).join('');
+
+  // Courses
+  if(!data.courses.length){
+    document.getElementById('course-list').innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><p>No courses enrolled yet.</p></div>';
+  } else {
+    document.getElementById('course-list').innerHTML = data.courses.map(c=>`
+      <div class="cp-item">
+        <div class="cp-icon">${getCourseIcon(c.title)}</div>
+        <div class="cp-info">
+          <div class="cp-title">${c.title}</div>
+          <div class="cp-cat">${c.category}</div>
+          <div class="progress-bar" style="margin-top:6px;height:4px">
+            <div class="progress-fill" style="width:${c.progress_percent}%"></div>
+          </div>
+        </div>
+        <div class="cp-pct">${c.progress_percent}%</div>
+      </div>`).join('');
+  }
+
+  // Streak heatmap (21 days)
+  const heatmap = document.getElementById('streak-heatmap');
+  const today = new Date();
+  let html='';
+  for(let i=20;i>=0;i--){
+    const d=new Date(today); d.setDate(today.getDate()-i);
+    const ds=d.toISOString().slice(0,10);
+    const isToday=i===0;
+    const isActive=i<me.streak_days;
+    html+=`<div class="sh-day ${isActive?'active':''} ${isToday?'today':''}" title="${ds}"></div>`;
+  }
+  heatmap.innerHTML=html;
+}
+
+document.addEventListener('DOMContentLoaded', loadProfile);
+</script>
+{% endblock %}
