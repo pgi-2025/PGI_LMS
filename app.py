@@ -159,10 +159,6 @@ def quiz_page():            return render_template('quiz.html')
 @login_required
 def leaderboard_page():     return render_template('leaderboard.html')
 
-@app.route('/certifications')
-@login_required
-def certifications_page():  return render_template('certifications.html')
-
 @app.route('/profile')
 @login_required
 def profile_page():         return render_template('profile.html')
@@ -666,16 +662,7 @@ def api_complete_lesson():
             pass
 
         if pct == 100:
-            cert_num = 'PGI-' + ''.join(
-                random.choices(string.ascii_uppercase + string.digits, k=10))
-            try:
-                supabase.table('certificates').insert(
-                    {'user_id': uid, 'course_id': cid, 'certificate_number': cert_num}
-                ).execute()
-                _add_notification(uid, '🎓 Certificate Earned!',
-                                  f'You completed the course! Certificate #{cert_num} issued.',
-                                  'success')
-                cert_issued = True
+           
             except Exception:
                 pass
 
@@ -945,51 +932,6 @@ def api_leaderboard():
     return jsonify(board)
 
 
-# ════════════════════════════════════════════════════════
-# CERTIFICATIONS
-# ════════════════════════════════════════════════════════
-@app.route('/api/certifications')
-@login_required
-def api_certifications():
-    uid = session['user_id']
-    certs = rows(supabase.table('certificates').select('*')
-                 .eq('user_id', uid).order('issued_at', desc=True).execute())
-
-    course_ids = [c['course_id'] for c in certs]
-    courses_map = {}
-    if course_ids:
-        crs = rows(supabase.table('courses').select(
-            'id,title,instructor,category,difficulty,total_hours')
-            .in_('id', course_ids).execute())
-        courses_map = {c['id']: c for c in crs}
-
-    for c in certs:
-        co = courses_map.get(c['course_id'], {})
-        c['course_title'] = co.get('title')
-        c['instructor']   = co.get('instructor')
-        c['category']     = co.get('category')
-        c['difficulty']   = co.get('difficulty')
-        c['total_hours']  = co.get('total_hours')
-        c['issued_at']    = str(c['issued_at'])
-
-    ucs = rows(supabase.table('user_courses').select('course_id,progress_percent')
-               .eq('user_id', uid).gte('progress_percent', 80).lt('progress_percent', 100).execute())
-    cert_course_ids = {c['course_id'] for c in certs}
-    ip_ids = [uc['course_id'] for uc in ucs if uc['course_id'] not in cert_course_ids]
-
-    in_progress = []
-    if ip_ids:
-        crs = rows(supabase.table('courses').select('id,title,category').in_('id', ip_ids).execute())
-        crs_map = {c['id']: c for c in crs}
-        for uc in ucs:
-            c = crs_map.get(uc['course_id'])
-            if c:
-                in_progress.append({
-                    'title': c['title'], 'category': c['category'],
-                    'progress_percent': uc['progress_percent'], 'course_id': uc['course_id'],
-                })
-
-    return jsonify({'certificates': certs, 'in_progress': in_progress})
 
 
 # ════════════════════════════════════════════════════════
