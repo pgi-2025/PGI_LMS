@@ -662,7 +662,12 @@ def api_complete_lesson():
             pass
 
         if pct == 100:
-           
+            cert_issued = True
+            try:
+                supabase.table('certificates').insert({
+                    'user_id': uid, 'course_id': cid,
+                    'issued_at': now_iso(),
+                }).execute()
             except Exception:
                 pass
 
