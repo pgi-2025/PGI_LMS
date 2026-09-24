@@ -1,0 +1,192 @@
+
+/* ── Profile card ─────────────────────────────────────────────── */
+.profile-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 2rem 2rem 1.5rem;
+  max-width: 860px;
+}
+
+/* ── Photo section ────────────────────────────────────────────── */
+.photo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+.photo-wrapper {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--green-400);
+  box-shadow: 0 0 0 4px rgba(34,162,78,.15);
+  cursor: pointer;
+}
+.profile-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-placeholder {
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, var(--green-500), var(--green-400));
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 2.5rem; font-weight: 800;
+  color: #fff;
+}
+.photo-overlay {
+  position: absolute; inset: 0;
+  background: rgba(13,35,24,.6);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: #fff; font-size: .7rem; font-weight: 600;
+  opacity: 0; transition: opacity .2s;
+  cursor: pointer; gap: 4px;
+}
+.photo-wrapper:hover .photo-overlay { opacity: 1; }
+.photo-hint { font-size: .7rem; color: var(--text-muted); margin-top: .6rem; }
+
+/* ── Form grid (2 columns) ────────────────────────────────────── */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ── Field ────────────────────────────────────────────────────── */
+.field { display: flex; flex-direction: column; gap: .4rem; }
+.field--full { margin-bottom: 1.25rem; }
+
+.field label {
+  font-size: .75rem; font-weight: 700;
+  color: var(--text-dark); letter-spacing: .02em;
+}
+.field input,
+.field select,
+.field textarea {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: .6rem .85rem;
+  font-size: .875rem;
+  color: var(--text-dark);
+  background: var(--bg);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--green-400);
+  box-shadow: 0 0 0 3px rgba(34,162,78,.12);
+  background: var(--bg-card);
+}
+.field input::placeholder,
+.field textarea::placeholder { color: var(--text-muted); }
+.field textarea { resize: vertical; min-height: 90px; }
+.field select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237aaa8d' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .8rem center;
+  padding-right: 2rem;
+}
+
+/* ── Form buttons ─────────────────────────────────────────────── */
+.form-buttons { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .65rem 1.6rem;
+  border-radius: var(--radius-sm);
+  font-size: .875rem; font-weight: 700;
+  border: none;
+  transition: transform .15s, box-shadow .15s, background .15s;
+  cursor: pointer;
+}
+.btn:hover   { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn:active  { transform: translateY(0); }
+
+.btn--primary {
+  background: linear-gradient(135deg, var(--green-500), var(--green-700));
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(34,162,78,.3);
+}
+.btn--primary:hover { background: linear-gradient(135deg, var(--green-400), var(--green-500)); }
+
+.btn--secondary {
+  background: var(--bg);
+  color: var(--text-mid);
+  border: 1.5px solid var(--border);
+}
+.btn--secondary:hover { background: var(--green-50); color: var(--text-dark); }
+
+/* ── Password section ─────────────────────────────────────────── */
+.password-section {
+  background: var(--green-50);
+  border: 1.5px solid var(--green-200);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+.section-title {
+  font-size: .95rem; font-weight: 700;
+  color: var(--green-700);
+  margin-bottom: 1.25rem;
+}
+
+/* Input with icon (password fields) */
+.input-icon-wrap {
+  position: relative; display: flex; align-items: center;
+}
+.input-icon-wrap input {
+  width: 100%;
+  padding: .6rem .85rem .6rem 2.2rem;
+  padding-right: 2.5rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: .875rem;
+  background: var(--bg); outline: none;
+  color: var(--text-dark);
+  transition: border-color .2s, box-shadow .2s;
+}
+.input-icon-wrap input:focus {
+  border-color: var(--green-400);
+  box-shadow: 0 0 0 3px rgba(34,162,78,.12);
+  background: var(--bg-card);
+}
+.input-icon {
+  position: absolute; left: .7rem;
+  font-size: .85rem; pointer-events: none;
+}
+.eye-btn {
+  position: absolute; right: .6rem;
+  background: none; border: none;
+  font-size: .85rem; color: var(--text-muted);
+  cursor: pointer; opacity: .6;
+  transition: opacity .2s;
+}
+.eye-btn:hover { opacity: 1; }
+
+.pass-hint {
+  font-size: .75rem; margin-top: .5rem;
+  min-height: 1em; color: var(--urgent); font-weight: 600;
+}
+.pass-hint.ok { color: var(--success); }
+
+/* ── Edit-profile link wrapper in sidebar ─────────────────────── */
+a.edit-profile-btn {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+a.edit-profile-btn:hover .sidebar-user {
+  background: rgba(255,255,255,.12);
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .profile-card { padding: 1.25rem 1rem; }
+}

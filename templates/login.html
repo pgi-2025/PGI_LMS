@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Plant Green Inertia LMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/main.css">
+  <style>
+    body{background:var(--green-900);min-height:100vh;display:flex;align-items:center;justify-content:center;}
+
+    /* ── wrapper ── */
+    .auth-wrapper{display:flex;width:100%;max-width:960px;min-height:560px;border-radius:var(--radius-xl);overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.5);margin:20px;}
+
+    /* ── left panel ── */
+    .auth-left{flex:1;background:linear-gradient(135deg,var(--green-700) 0%,var(--green-900) 100%);padding:48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;}
+    .auth-left::before{content:'';position:absolute;top:-60px;right:-60px;width:280px;height:280px;background:rgba(255,255,255,.04);border-radius:50%;}
+    .auth-left::after{content:'';position:absolute;bottom:-80px;left:-40px;width:220px;height:220px;background:rgba(255,255,255,.04);border-radius:50%;}
+    .auth-brand{display:flex;align-items:center;gap:12px;color:#fff;}
+    .auth-brand-icon{width:44px;height:44px;background:rgba(255,255,255,.15);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:22px;}
+    .auth-brand-name{font-family:var(--font-display);font-size:15px;font-weight:700;}
+    .auth-brand-sub{font-size:11px;opacity:.5;}
+    .auth-hero{position:relative;z-index:1;}
+    .auth-hero h2{font-family:var(--font-display);font-size:30px;font-weight:800;color:#fff;line-height:1.25;margin-bottom:14px;}
+    .auth-hero p{color:rgba(255,255,255,.6);font-size:15px;line-height:1.7;}
+    .auth-features{display:flex;flex-direction:column;gap:10px;}
+    .auth-feature{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.75);font-size:13px;}
+    .auth-feature-dot{width:8px;height:8px;border-radius:50%;background:var(--green-400);flex-shrink:0;}
+
+    /* ── right panel ── */
+    .auth-right{flex:0 0 420px;background:var(--bg-card);padding:44px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;}
+
+    /* panels inside right */
+    .auth-panel{transition:opacity .25s,transform .25s;}
+    .auth-panel.hidden{opacity:0;pointer-events:none;position:absolute;inset:44px;transform:translateX(20px);}
+
+    .auth-right h1{font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--text-dark);margin-bottom:6px;}
+    .auth-right .sub{font-size:14px;color:var(--text-muted);margin-bottom:26px;}
+
+    .auth-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--text-muted);font-size:12px;}
+    .auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+    .auth-footer{text-align:center;margin-top:16px;font-size:13px;color:var(--text-muted);}
+    .auth-footer a{color:var(--green-600);font-weight:600;cursor:pointer;}
+    .auth-footer a:hover{text-decoration:underline;}
+
+    .forgot-link{display:block;text-align:right;font-size:12px;color:var(--green-600);font-weight:600;cursor:pointer;margin-top:-10px;margin-bottom:16px;}
+    .forgot-link:hover{text-decoration:underline;}
+
+    /* alert boxes */
+    .alert{border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:14px;display:none;}
+    .alert-error  {background:#fee2e2;border:1px solid #fca5a5;color:#b91c1c;}
+    .alert-success{background:#dcfce7;border:1px solid #86efac;color:#15803d;}
+    .alert-info   {background:#e0e7ff;border:1px solid #a5b4fc;color:#3730a3;}
+
+    /* password eye toggle */
+    .pw-wrap{position:relative;}
+    .pw-wrap .form-input{padding-right:42px;}
+    .pw-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:17px;color:var(--text-muted);line-height:1;padding:0;}
+
+    /* strength meter */
+    .strength-bar{height:4px;border-radius:99px;background:var(--border);margin-top:6px;overflow:hidden;}
+    .strength-fill{height:100%;border-radius:99px;transition:width .3s,background .3s;width:0%;}
+    .strength-label{font-size:11px;color:var(--text-muted);margin-top:3px;}
+
+
+    @media(max-width:700px){
+      .auth-left{display:none;}
+      .auth-right{flex:1;padding:32px 24px;}
+      .auth-panel.hidden{inset:32px 24px;}
+    }
+  </style>
+</head>
+<body>
+<div style="display:flex;align-items:center;justify-content:center;min-height:100vh">
+<div class="auth-wrapper">
+
+  <!-- ── Left decorative panel ─────────────────────── -->
+  <div class="auth-left">
+    <div class="auth-brand">
+      <div class="auth-brand-icon">🌿</div>
+      <div>
+        <div class="auth-brand-name">Plant Green Inertia</div>
+        <div class="auth-brand-sub">Learning Management System</div>
+      </div>
+    </div>
+    <div class="auth-hero">
+      <h2>Learn. Grow.<br>Achieve More.</h2>
+      <p>Your personalized learning platform with streak tracking, XP rewards, and verified certificates.</p>
+    </div>
+    <div class="auth-features">
+      <div class="auth-feature"><div class="auth-feature-dot"></div>Track daily learning streaks</div>
+      <div class="auth-feature"><div class="auth-feature-dot"></div>Earn XP and level up</div>
+      <div class="auth-feature"><div class="auth-feature-dot"></div>Watch videos & take quizzes</div>
+      <div class="auth-feature"><div class="auth-feature-dot"></div>Download verified certificates</div>
+    </div>
+  </div>
+
+  <!-- ── Right: three panels (login / forgot / reset) ── -->
+  <div class="auth-right">
+
+    <!-- ════════ PANEL 1: LOGIN ════════ -->
+    <div class="auth-panel" id="panel-login">
+      <h1>Welcome back 👋</h1>
+      <p class="sub">Sign in to continue your learning journey</p>
+
+      <div class="alert alert-error" id="login-err"></div>
+
+      <div class="form-group">
+        <label class="form-label">Email or Username</label>
+        <input type="text" class="form-input" id="login-email"
+               placeholder="abc@example.com" autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="pw-wrap">
+          <input type="password" class="form-input" id="login-password"
+                 placeholder="Enter your password" autocomplete="current-password">
+          <button class="pw-eye" type="button" onclick="togglePw('login-password',this)">👁</button>
+        </div>
+      </div>
+
+      <span class="forgot-link" onclick="showPanel('panel-forgot')">Forgot password?</span>
+
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:13px"
+              id="login-btn" onclick="doLogin()">
+        Sign In →
+      </button>
+
+      <div class="auth-footer">
+        Don't have an account? <a href="/register">Create one free</a>
+      </div>
+    </div><!-- /panel-login -->
+
+
+    <!-- ════════ PANEL 2: FORGOT PASSWORD ════════ -->
+    <div class="auth-panel hidden" id="panel-forgot">
+      <h1>Reset Password 🔑</h1>
+      <p class="sub">Enter your registered email and choose a new password. It will be updated immediately.</p>
+
+      <div class="alert alert-error"   id="forgot-err"></div>
+      <div class="alert alert-success" id="forgot-ok"></div>
+
+      <div class="form-group">
+        <label class="form-label">Registered Email</label>
+        <input type="email" class="form-input" id="forgot-email"
+               placeholder="abc@example.com" autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">New Password</label>
+        <div class="pw-wrap">
+          <input type="password" class="form-input" id="new-password"
+                 placeholder="Min 8 characters"
+                 oninput="checkStrength(this.value)"
+                 autocomplete="new-password">
+          <button class="pw-eye" type="button" onclick="togglePw('new-password',this)">👁</button>
+        </div>
+        <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+        <div class="strength-label" id="strength-label">Enter a password</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Confirm New Password</label>
+        <div class="pw-wrap">
+          <input type="password" class="form-input" id="confirm-password"
+                 placeholder="Repeat new password"
+                 autocomplete="new-password">
+          <button class="pw-eye" type="button" onclick="togglePw('confirm-password',this)">👁</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:13px"
+              id="reset-btn" onclick="doReset()">
+        Reset Password →
+      </button>
+
+      <div class="auth-footer">
+        <a onclick="showPanel('panel-login')">← Back to Sign In</a>
+      </div>
+    </div><!-- /panel-forgot -->
+
+
+    <!-- ════════ PANEL 3: RESET SUCCESS ════════ -->
+    <div class="auth-panel hidden" id="panel-success">
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:56px;margin-bottom:16px">✅</div>
+        <h1 style="font-size:22px;margin-bottom:8px">Password Updated!</h1>
+        <p class="sub" style="margin-bottom:0">
+          Your password has been changed and saved in the database.<br>
+          You can now sign in with your new password.
+        </p>
+        <div class="alert alert-info" id="success-info"
+             style="display:block;margin-top:20px;text-align:left"></div>
+        <button class="btn btn-primary"
+                style="margin-top:24px;padding:12px 32px"
+                onclick="showPanel('panel-login')">
+          Go to Sign In →
+        </button>
+      </div>
+    </div><!-- /panel-success -->
+
+  </div><!-- /auth-right -->
+</div><!-- /auth-wrapper -->
+</div>
+
+<script>
+// ── Panel switching ───────────────────────────────────────
+function showPanel(id) {
+  document.querySelectorAll('.auth-panel').forEach(p => {
+    p.classList.toggle('hidden', p.id !== id);
+  });
+  // clear alerts when switching
+  document.querySelectorAll('.alert').forEach(a => a.style.display = 'none');
+}
+
+// ── Toggle password visibility ────────────────────────────
+function togglePw(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (inp.type === 'password') { inp.type = 'text';     btn.textContent = '🙈'; }
+  else                         { inp.type = 'password'; btn.textContent = '👁';  }
+}
+
+// ── Show alert helpers ────────────────────────────────────
+function showAlert(elId, msg) {
+  const el = document.getElementById(elId);
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideAlert(elId) {
+  document.getElementById(elId).style.display = 'none';
+}
+
+// ── Password strength meter ───────────────────────────────
+function checkStrength(pw) {
+  const fill  = document.getElementById('strength-fill');
+  const label = document.getElementById('strength-label');
+  let score = 0;
+  if (pw.length >= 8)             score++;
+  if (pw.length >= 12)            score++;
+  if (/[A-Z]/.test(pw))           score++;
+  if (/[0-9]/.test(pw))           score++;
+  if (/[^A-Za-z0-9]/.test(pw))   score++;
+
+  const levels = [
+    { w: '0%',   bg: 'transparent', text: 'Enter a password' },
+    { w: '25%',  bg: '#ef4444',     text: '⚠ Weak'           },
+    { w: '50%',  bg: '#f59e0b',     text: '▲ Fair'           },
+    { w: '75%',  bg: '#3b82f6',     text: '✔ Good'           },
+    { w: '100%', bg: '#22c55e',     text: '✔✔ Strong'        },
+  ];
+  const lvl = levels[Math.min(score, 4)];
+  fill.style.width      = lvl.w;
+  fill.style.background = lvl.bg;
+  label.textContent     = lvl.text;
+  label.style.color     = lvl.bg || 'var(--text-muted)';
+}
+
+// ══════════════════════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════════════════════
+async function doLogin() {
+  hideAlert('login-err');
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) { showAlert('login-err', 'Please fill in all fields.'); return; }
+
+  const btn = document.getElementById('login-btn');
+  btn.textContent = 'Signing in…';
+  btn.disabled    = true;
+
+  const res  = await fetch('/api/auth/login', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+
+  if (data.success) {
+    window.location.href = data.redirect;
+  } else {
+    showAlert('login-err', data.error || 'Login failed. Please try again.');
+    btn.textContent = 'Sign In →';
+    btn.disabled    = false;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// RESET PASSWORD  (direct DB update — no email server needed)
+// ══════════════════════════════════════════════════════════
+async function doReset() {
+  hideAlert('forgot-err');
+  hideAlert('forgot-ok');
+
+  const email    = document.getElementById('forgot-email').value.trim();
+  const newPw    = document.getElementById('new-password').value;
+  const confirmPw = document.getElementById('confirm-password').value;
+
+  // ── Client-side validation ──
+  if (!email)  { showAlert('forgot-err', 'Please enter your registered email.'); return; }
+  if (!newPw)  { showAlert('forgot-err', 'Please enter a new password.'); return; }
+  if (newPw.length < 8) { showAlert('forgot-err', 'Password must be at least 8 characters.'); return; }
+  if (newPw !== confirmPw) { showAlert('forgot-err', 'Passwords do not match.'); return; }
+
+  const btn = document.getElementById('reset-btn');
+  btn.textContent = 'Updating…';
+  btn.disabled    = true;
+
+  const res  = await fetch('/api/auth/reset-password', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ email, new_password: newPw }),
+  });
+  const data = await res.json();
+
+  btn.textContent = 'Reset Password →';
+  btn.disabled    = false;
+
+  if (data.success) {
+    // Show success panel with info about hashing
+    document.getElementById('success-info').innerHTML =
+      `<strong>Password saved for:</strong> ${email}<br>` +
+      `<span style="font-size:11px;margin-top:4px;display:block">` +
+      `Your password is securely stored as a bcrypt hash in the database — ` +
+      `not as plain text. Hash preview: <code style="font-size:10px">${data.hash_preview}</code></span>`;
+    showPanel('panel-success');
+  } else {
+    showAlert('forgot-err', data.error || 'Reset failed. Please try again.');
+  }
+}
+
+// ── Keyboard shortcuts ────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const active = document.querySelector('.auth-panel:not(.hidden)');
+  if (!active) return;
+  if (active.id === 'panel-login')  doLogin();
+  if (active.id === 'panel-forgot') doReset();
+});
+</script>
+</body>
+</html>

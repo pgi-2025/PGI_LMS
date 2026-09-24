@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% block title %}Edit Profile{% endblock %}
+{% block page_title %}Edit Profile{% endblock %}
+{% block page_subtitle %}Update your personal information{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/edit_profile.css">
+{% endblock %}
+
+{% block content %}
+
+    <div class="profile-card" id="profileCard" style="display:none;">
+
+      <!-- Photo -->
+      <div class="photo-section">
+        <div class="photo-wrapper" onclick="document.getElementById('avatarInput').click()">
+          <img src="" alt="Profile" id="profilePreview" class="profile-photo" style="display:none;">
+          <div class="photo-placeholder" id="photoPlaceholder">A</div>
+          <div class="photo-overlay">
+            <span>📷</span><small>Change Photo</small>
+          </div>
+        </div>
+        <input type="file" id="avatarInput" accept="image/*" style="display:none;">
+        <p class="photo-hint">JPG, PNG or GIF · Max 2 MB</p>
+        <p class="photo-status" id="avatarStatus"></p>
+      </div>
+
+      <!-- Info form -->
+      <form id="infoForm" onsubmit="return false;">
+        <div class="form-grid">
+
+          <div class="field">
+            <label for="fullName">Full Name</label>
+            <input type="text" id="fullName" name="full_name" placeholder="Your full name" required>
+          </div>
+
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="you@example.com" required>
+          </div>
+
+          <div class="field">
+            <label for="phone">Phone</label>
+            <input type="text" id="phone" name="phone" placeholder="+91 00000 00000">
+          </div>
+
+          <div class="field">
+            <label for="dob">Date of Birth</label>
+            <input type="date" id="dob" name="date_of_birth">
+          </div>
+
+          <div class="field">
+            <label for="gender">Gender</label>
+            <select id="gender" name="gender">
+              <option value="">— Select —</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field field--full">
+          <label for="bio">About Me</label>
+          <textarea id="bio" name="bio" rows="4" placeholder="Tell us about yourself..."></textarea>
+        </div>
+
+        <div class="form-msg" id="infoMsg"></div>
+
+        <div class="form-buttons">
+          <button type="button" class="btn btn--primary" id="saveInfoBtn" onclick="saveInfo()">
+            <span>🌿</span> Save Changes
+          </button>
+          <button type="button" class="btn btn--secondary" onclick="history.back()">Cancel</button>
+        </div>
+      </form>
+
+      <!-- Password section -->
+      <div class="password-section">
+        <h3 class="section-title">🔒 Change Password</h3>
+        <div class="password-grid">
+          <div class="field password-field">
+            <label for="currentPassword">Current Password</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="currentPassword" placeholder="Current password">
+              <button type="button" class="eye-btn" onclick="togglePass('currentPassword',this)">👁</button>
+            </div>
+          </div>
+          <div class="field password-field">
+            <label for="newPassword">New Password</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="newPassword" placeholder="Min. 8 characters">
+              <button type="button" class="eye-btn" onclick="togglePass('newPassword',this)">👁</button>
+            </div>
+          </div>
+          <div class="field password-field">
+            <label for="confirmPassword">Confirm Password</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="confirmPassword" placeholder="Repeat new password">
+              <button type="button" class="eye-btn" onclick="togglePass('confirmPassword',this)">👁</button>
+            </div>
+          </div>
+        </div>
+
+        <p class="pass-hint" id="passHint"></p>
+        <div class="form-msg" id="passMsg"></div>
+
+        <div class="form-buttons" style="margin-top:1rem;">
+          <button type="button" class="btn btn--primary" id="savePassBtn" onclick="savePassword()">
+            🔑 Update Password
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /profile-card -->
+
+    <!-- Skeleton shown while loading -->
+    <div id="loadingSkeleton" class="skeleton-wrap">
+      <div class="skeleton skeleton--photo"></div>
+      <div class="skeleton skeleton--line" style="width:60%"></div>
+      <div class="skeleton skeleton--line" style="width:40%"></div>
+      <div class="skeleton skeleton--line" style="width:80%"></div>
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  fetch('/api/user/me')
+    .then(r => r.json())
+    .then(u => {
+      if (u.error) { window.location = '/login'; return; }
+
+      // Avatar
+      if (u.avatar_url) {
+        document.getElementById('profilePreview').src = u.avatar_url;
+        document.getElementById('profilePreview').style.display = 'block';
+        document.getElementById('photoPlaceholder').style.display = 'none';
+      } else {
+        document.getElementById('photoPlaceholder').textContent =
+          (u.full_name || 'U')[0].toUpperCase();
+      }
+
+      // Fill form fields
+      setVal('fullName', u.full_name);
+      setVal('email',    u.email);
+      setVal('phone',    u.phone || '');
+      setVal('dob',      u.date_of_birth || '');
+      setVal('bio',      u.bio || '');
+      setSelect('gender', u.gender);
+
+      // Show card, hide skeleton
+      document.getElementById('profileCard').style.display = 'block';
+      document.getElementById('loadingSkeleton').style.display = 'none';
+    })
+    .catch(err => {
+      console.error('Failed to load profile:', err);
+      // Don't redirect — just hide skeleton and show empty form
+      document.getElementById('profileCard').style.display = 'block';
+      document.getElementById('loadingSkeleton').style.display = 'none';
+    });
+});
+
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val || '';
+}
+function setSelect(id, val) {
+  const el = document.getElementById(id);
+  if (!el || !val) return;
+  for (let opt of el.options) {
+    if (opt.value === val) { opt.selected = true; break; }
+  }
+}
+
+// Avatar upload
+document.getElementById('avatarInput').addEventListener('change', function () {
+  const file = this.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    showMsg('avatarStatus', 'Image must be under 2 MB.', 'error'); return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('profilePreview').src = e.target.result;
+    document.getElementById('profilePreview').style.display = 'block';
+    document.getElementById('photoPlaceholder').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+  const fd = new FormData();
+  fd.append('avatar', file);
+  showMsg('avatarStatus', 'Uploading…', 'info');
+  fetch('/api/user/avatar', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+      showMsg('avatarStatus', data.success ? '✓ Photo updated!' : (data.error || 'Upload failed.'),
+              data.success ? 'ok' : 'error');
+    })
+    .catch(() => showMsg('avatarStatus', 'Upload failed.', 'error'));
+});
+
+// Save profile info
+function saveInfo() {
+  const btn = document.getElementById('saveInfoBtn');
+  const payload = {
+    full_name:     document.getElementById('fullName').value.trim(),
+    email:         document.getElementById('email').value.trim(),
+    phone:         document.getElementById('phone').value.trim(),
+    date_of_birth: document.getElementById('dob').value,
+    gender:        document.getElementById('gender').value,
+    bio:           document.getElementById('bio').value.trim(),
+  };
+  if (!payload.full_name) { showMsg('infoMsg', 'Full name is required.', 'error'); return; }
+  if (!payload.email)     { showMsg('infoMsg', 'Email is required.', 'error'); return; }
+  btn.disabled = true; btn.textContent = 'Saving…';
+  fetch('/api/user/update_profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+    .then(r => r.json())
+    .then(data => {
+      showMsg('infoMsg', data.success ? (data.message || '✓ Profile updated!') : (data.error || 'Something went wrong.'),
+              data.success ? 'ok' : 'error');
+    })
+    .catch(() => showMsg('infoMsg', 'Network error.', 'error'))
+    .finally(() => { btn.disabled = false; btn.innerHTML = '<span>🌿</span> Save Changes'; });
+}
+
+// Password listeners
+document.getElementById('newPassword').addEventListener('input', checkPasswords);
+document.getElementById('confirmPassword').addEventListener('input', checkPasswords);
+
+function checkPasswords() {
+  const np = document.getElementById('newPassword').value;
+  const cp = document.getElementById('confirmPassword').value;
+  const hint = document.getElementById('passHint');
+  if (!np && !cp) { hint.textContent = ''; return; }
+  if (np.length > 0 && np.length < 8) { hint.textContent = 'Password must be at least 8 characters.'; hint.className = 'pass-hint'; return; }
+  if (cp && np !== cp) { hint.textContent = '✗ Passwords do not match.'; hint.className = 'pass-hint'; }
+  else if (np && cp && np === cp) { hint.textContent = '✓ Passwords match!'; hint.className = 'pass-hint ok'; }
+  else { hint.textContent = ''; }
+}
+
+function savePassword() {
+  const payload = {
+    current_password: document.getElementById('currentPassword').value,
+    new_password:     document.getElementById('newPassword').value,
+    confirm_password: document.getElementById('confirmPassword').value,
+  };
+  if (!payload.current_password || !payload.new_password || !payload.confirm_password) {
+    showMsg('passMsg', 'All password fields are required.', 'error'); return;
+  }
+  if (payload.new_password !== payload.confirm_password) {
+    showMsg('passMsg', 'Passwords do not match.', 'error'); return;
+  }
+  const btn = document.getElementById('savePassBtn');
+  btn.disabled = true; btn.textContent = 'Updating…';
+  fetch('/api/user/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showMsg('passMsg', data.message || '✓ Password updated!', 'ok');
+        ['currentPassword','newPassword','confirmPassword'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('passHint').textContent = '';
+      } else {
+        showMsg('passMsg', data.error || 'Something went wrong.', 'error');
+      }
+    })
+    .catch(() => showMsg('passMsg', 'Network error.', 'error'))
+    .finally(() => { btn.disabled = false; btn.textContent = '🔑 Update Password'; });
+}
+
+function togglePass(inputId, btn) {
+  const el = document.getElementById(inputId);
+  el.type = el.type === 'password' ? 'text' : 'password';
+  btn.textContent = el.type === 'password' ? '👁' : '🙈';
+}
+
+function showMsg(elId, text, type) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'form-msg form-msg--' + type;
+  if (type === 'ok') setTimeout(() => { el.textContent = ''; el.className = 'form-msg'; }, 4000);
+}
+</script>
+{% endblock %}

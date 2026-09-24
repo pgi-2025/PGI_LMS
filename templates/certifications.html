@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Certifications{% endblock %}
+{% block page_title %}Certifications{% endblock %}
+{% block page_subtitle %}Certificates you've earned by passing course tests{% endblock %}
+
+{% block extra_css %}
+<style>
+.cert-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.cert-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+             padding: 20px; box-shadow: var(--shadow-sm); transition: all .2s; }
+.cert-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.cert-icon { font-size: 30px; margin-bottom: 8px; }
+.cert-title { font-weight: 700; font-size: 15px; color: var(--text-dark); margin-bottom: 4px; }
+.cert-domain { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+.cert-meta { font-size: 11px; color: var(--text-muted); margin-bottom: 14px; }
+.cert-btn { display: inline-block; background: var(--green-600, #16a34a); color: #fff; font-weight: 600;
+            font-size: 13px; padding: 8px 16px; border-radius: 8px; text-decoration: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cert-grid" id="cert-grid">
+  <div class="empty-state" style="padding:20px"><div class="empty-icon">🎓</div><p>Loading…</p></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(async function () {
+  const grid = document.getElementById('cert-grid');
+  const certs = await api.get('/api/certificates') || [];
+  if (!certs.length) {
+    grid.innerHTML = '<div class="empty-state" style="padding:20px"><div class="empty-icon">🎓</div>' +
+      '<p>No certificates yet — pass a course\'s final test to earn one!</p></div>';
+    return;
+  }
+  grid.innerHTML = certs.map(c => `
+    <div class="cert-card">
+      <div class="cert-icon">🏅</div>
+      <div class="cert-title">${c.course_title || 'Course'}</div>
+      <div class="cert-domain">Domain: ${c.category || '—'}</div>
+      <div class="cert-meta">Cert No: ${c.certificate_number} · Issued ${c.issued_at}</div>
+      <a class="cert-btn" href="/certificate/${c.course_id}" target="_blank">🎓 View Certificate</a>
+    </div>`).join('');
+})();
+</script>
+{% endblock %}
