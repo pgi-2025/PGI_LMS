@@ -137,7 +137,14 @@ async function enrollCourse(id, e) {
 // VIEWER
 // ══════════════════════════════════════════════════════════════════════════
 async function openViewer(courseId) {
-  const data = await api.get(`/api/courses/${courseId}`);
+  let data;
+  try {
+    data = await api.get(`/api/courses/${courseId}`);
+  } catch (err) {
+    console.error('openViewer: /api/courses/' + courseId + ' failed', err);
+    toast.show('Error', 'Server error loading this course. Check the server log.', 'error');
+    return;
+  }
   if (!data || data.error) { toast.show('Error', 'Could not load course', 'error'); return; }
 
   viewerCourse  = data.course;
