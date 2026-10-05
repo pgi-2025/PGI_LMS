@@ -18,6 +18,16 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
+
+
+@app.errorhandler(500)
+def _debug_500(e):
+    import traceback
+    if request.path.startswith('/api/'):
+        return jsonify({'error': str(getattr(e, 'original_exception', e)),
+                        'trace': traceback.format_exc()}), 500
+    return e
+
 app.config['SECRET_KEY']          = os.environ.get('SECRET_KEY', 'pgi-lms-secret-2024')
 app.config['UPLOAD_FOLDER']       = os.path.join('static', 'uploads')
 app.config['MAX_CONTENT_LENGTH']  = 500 * 1024 * 1024  # 500 MB
