@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block page_subtitle %}Manage your account preferences{% endblock %}
+
+{% block extra_css %}
+<style>
+.settings-layout{display:grid;grid-template-columns:220px 1fr;gap:24px;align-items:start}
+.settings-nav{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;position:sticky;top:calc(var(--header-h)+16px)}
+.snav-item{display:flex;align-items:center;gap:10px;padding:12px 18px;font-size:13px;font-weight:500;color:var(--text-mid);cursor:pointer;border-left:3px solid transparent;transition:all .15s}
+.snav-item:hover{background:var(--bg);color:var(--text-dark)}
+.snav-item.active{background:var(--green-50);color:var(--green-700);border-left-color:var(--green-500);font-weight:700}
+.snav-icon{font-size:16px;width:20px;text-align:center}
+
+.settings-panel{display:none}
+.settings-panel.active{display:block}
+.settings-section{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-sm);margin-bottom:20px}
+.settings-section h3{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--text-dark);margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.settings-row:last-child{border-bottom:none;padding-bottom:0}
+.settings-row-label{font-size:14px;font-weight:600;color:var(--text-dark)}
+.settings-row-desc{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+/* Toggle switch */
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:#d1d5db;border-radius:99px;cursor:pointer;transition:background .2s}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle input:checked + .toggle-slider{background:var(--green-500)}
+.toggle input:checked + .toggle-slider::before{transform:translateX(20px)}
+
+/* Avatar upload */
+.avatar-upload-wrap{display:flex;align-items:center;gap:16px}
+.avatar-preview{width:64px;height:64px;border-radius:50%;background:var(--green-500);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;font-family:var(--font-display);overflow:hidden;border:3px solid var(--green-200);flex-shrink:0}
+.avatar-preview img{width:100%;height:100%;object-fit:cover}
+
+/* Danger zone */
+.danger-section{background:#fff5f5;border:1px solid #fecaca;border-radius:var(--radius-lg);padding:22px;margin-bottom:20px}
+.danger-section h3{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--urgent);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.success-msg{background:#dcfce7;border:1px solid #86efac;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:#15803d;display:none;margin-top:12px}
+.error-msg{background:#fee2e2;border:1px solid #fca5a5;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--urgent);display:none;margin-top:12px}
+
+@media(max-width:768px){.settings-layout{grid-template-columns:1fr}.settings-nav{position:static;display:flex;overflow-x:auto;border-radius:var(--radius-lg)}.snav-item{flex-direction:column;gap:4px;font-size:11px;padding:10px 12px;border-left:none;border-bottom:3px solid transparent;white-space:nowrap}.snav-item.active{border-left:none;border-bottom-color:var(--green-500)}.snav-icon{font-size:20px}.form-row-2{grid-template-columns:1fr}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-layout">
+
+  <!-- Left nav -->
+  <div class="settings-nav">
+    <div class="snav-item active" onclick="switchTab('profile',this)">
+      <span class="snav-icon">👤</span> Profile
+    </div>
+    <div class="snav-item" onclick="switchTab('account',this)">
+      <span class="snav-icon">🔒</span> Account
+    </div>
+    <div class="snav-item" onclick="switchTab('notifications',this)">
+      <span class="snav-icon">🔔</span> Notifications
+    </div>
+    <div class="snav-item" onclick="switchTab('appearance',this)">
+      <span class="snav-icon">🎨</span> Appearance
+    </div>
+    <div class="snav-item" onclick="switchTab('danger',this)">
+      <span class="snav-icon">⚠️</span> Danger Zone
+    </div>
+  </div>
+
+  <!-- Right panels -->
+  <div>
+
+    <!-- ── PROFILE ── -->
+    <div class="settings-panel active" id="tab-profile">
+      <div class="settings-section">
+        <h3>👤 Profile Information</h3>
+
+        <!-- Avatar -->
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Profile Photo</div>
+            <div class="settings-row-desc">JPG, PNG or WebP. Shown across the platform.</div>
+          </div>
+          <div class="avatar-upload-wrap">
+            <div class="avatar-preview" id="settings-avatar">AB</div>
+            <div>
+              <input type="file" id="avatar-file" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
+              <button class="btn btn-outline btn-sm" onclick="document.getElementById('avatar-file').click()">Change Photo</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row-2" style="margin-top:16px">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" class="form-input" id="s-fullname" placeholder="Your full name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <input type="text" class="form-input" id="s-username" placeholder="username" disabled
+                   style="background:var(--bg);opacity:.6" title="Username cannot be changed">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bio</label>
+          <textarea class="form-input" id="s-bio" rows="3"
+                    placeholder="Tell others about yourself…"></textarea>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input type="tel" class="form-input" id="s-phone" placeholder="+91 98765 43210">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Timezone</label>
+            <select class="form-input" id="s-timezone">
+              <option value="Asia/Kolkata">India (IST, UTC+5:30)</option>
+              <option value="Asia/Dubai">Dubai (GST, UTC+4)</option>
+              <option value="Europe/London">London (GMT/BST)</option>
+              <option value="America/New_York">New York (EST/EDT)</option>
+              <option value="America/Los_Angeles">Los Angeles (PST/PDT)</option>
+              <option value="Asia/Singapore">Singapore (SGT, UTC+8)</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveProfile()">💾 Save Profile</button>
+        <div class="success-msg" id="profile-ok">✅ Profile saved successfully!</div>
+        <div class="error-msg"   id="profile-err"></div>
+      </div>
+    </div>
+
+    <!-- ── ACCOUNT ── -->
+    <div class="settings-panel" id="tab-account">
+      <div class="settings-section">
+        <h3>📧 Account Details</h3>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" class="form-input" id="s-email" disabled
+                 style="background:var(--bg);opacity:.6" title="Contact support to change email">
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Email cannot be changed. Contact support if needed.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input type="text" class="form-input" id="s-username-display" disabled style="background:var(--bg);opacity:.6">
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>🔒 Change Password</h3>
+        <div class="form-group">
+          <label class="form-label">New Password</label>
+          <input type="password" class="form-input" id="new-pw" placeholder="Min 8 characters">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm New Password</label>
+          <input type="password" class="form-input" id="confirm-pw" placeholder="Repeat new password">
+        </div>
+        <button class="btn btn-primary" onclick="changePassword()">🔒 Update Password</button>
+        <div class="success-msg" id="pw-ok">✅ Password updated successfully!</div>
+        <div class="error-msg"   id="pw-err"></div>
+      </div>
+    </div>
+
+    <!-- ── NOTIFICATIONS ── -->
+    <div class="settings-panel" id="tab-notifications">
+      <div class="settings-section">
+        <h3>🔔 Notification Preferences</h3>
+
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Email Notifications</div>
+            <div class="settings-row-desc">Receive course updates and reminders by email</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="notif-email" onchange="saveNotifPref()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Push Notifications</div>
+            <div class="settings-row-desc">In-app notifications for deadlines and achievements</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="notif-push" onchange="saveNotifPref()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Assignment Reminders</div>
+            <div class="settings-row-desc">Alerts 24h before assignment deadlines</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="notif-assign" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Streak Reminders</div>
+            <div class="settings-row-desc">Daily reminder to keep your learning streak</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="notif-streak" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="success-msg" id="notif-ok" style="margin-top:12px">✅ Preferences saved!</div>
+      </div>
+    </div>
+
+    <!-- ── APPEARANCE ── -->
+    <div class="settings-panel" id="tab-appearance">
+      <div class="settings-section">
+        <h3>🎨 Appearance</h3>
+
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Dark Mode</div>
+            <div class="settings-row-desc">Switch to a darker colour theme</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Language</div>
+            <div class="settings-row-desc">Display language for the interface</div>
+          </div>
+          <select class="form-input" style="width:160px">
+            <option>English</option>
+            <option>Tamil</option>
+            <option>Hindi</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DANGER ZONE ── -->
+    <div class="settings-panel" id="tab-danger">
+      <div class="danger-section">
+        <h3>⚠️ Danger Zone</h3>
+        <div class="settings-row" style="border:none;padding-top:0">
+          <div>
+            <div class="settings-row-label" style="color:var(--urgent)">Sign Out of All Devices</div>
+            <div class="settings-row-desc">Clears your session from all browsers</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="window.location.href='/api/auth/logout'">Sign Out</button>
+        </div>
+        <div class="settings-row" style="border-bottom:none;padding-bottom:0">
+          <div>
+            <div class="settings-row-label" style="color:var(--urgent)">Delete Account</div>
+            <div class="settings-row-desc">Permanently remove your account and all data. This cannot be undone.</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="confirmDelete()">Delete Account</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /right -->
+</div><!-- /settings-layout -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Tab switching ─────────────────────────────────────
+function switchTab(tab, el) {
+  document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.snav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  el.classList.add('active');
+}
+
+// ── Load user data ────────────────────────────────────
+async function loadSettings() {
+  const me = await api.get('/api/user/me');
+  if (!me) return;
+
+  // Profile tab
+  document.getElementById('s-fullname').value  = me.full_name   || '';
+  document.getElementById('s-username').value  = me.username    || '';
+  document.getElementById('s-bio').value        = me.bio        || '';
+  document.getElementById('s-phone').value      = me.phone      || '';
+  if (me.timezone) document.getElementById('s-timezone').value = me.timezone;
+
+  // Account tab
+  document.getElementById('s-email').value           = me.email    || '';
+  document.getElementById('s-username-display').value = me.username || '';
+
+  // Notifications tab
+  document.getElementById('notif-email').checked = !!me.notifications_email;
+  document.getElementById('notif-push').checked  = !!me.notifications_push;
+
+  // Appearance tab
+  document.getElementById('dark-mode-toggle').checked = !!me.dark_mode;
+
+  // Avatar
+  const av = document.getElementById('settings-avatar');
+  if (me.avatar_url) {
+    av.innerHTML = `<img src="${me.avatar_url}" alt="avatar">`;
+  } else {
+    av.textContent = (me.full_name||'?').split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  }
+}
+
+// ── Save profile ──────────────────────────────────────
+async function saveProfile() {
+  const data = await api.post('/api/user/update', {
+    full_name: document.getElementById('s-fullname').value.trim(),
+    bio:       document.getElementById('s-bio').value.trim(),
+    phone:     document.getElementById('s-phone').value.trim(),
+    timezone:  document.getElementById('s-timezone').value,
+  });
+  if (data && data.success) {
+    show('profile-ok'); hide('profile-err');
+  } else {
+    showErr('profile-err', data?.error || 'Could not save profile.');
+    hide('profile-ok');
+  }
+}
+
+// ── Change password ───────────────────────────────────
+async function changePassword() {
+  const newPw  = document.getElementById('new-pw').value;
+  const confPw = document.getElementById('confirm-pw').value;
+  hide('pw-ok'); hide('pw-err');
+  if (!newPw || newPw.length < 8)  { showErr('pw-err', 'Password must be at least 8 characters.'); return; }
+  if (newPw !== confPw)            { showErr('pw-err', 'Passwords do not match.'); return; }
+
+  // Get email from disabled field
+  const email = document.getElementById('s-email').value.trim();
+  const data  = await api.post('/api/auth/reset-password', { email, new_password: newPw });
+  if (data && data.success) {
+    show('pw-ok');
+    document.getElementById('new-pw').value     = '';
+    document.getElementById('confirm-pw').value = '';
+  } else {
+    showErr('pw-err', data?.error || 'Could not update password.');
+  }
+}
+
+// ── Notification prefs ────────────────────────────────
+async function saveNotifPref() {
+  await api.post('/api/user/update', {
+    notifications_email: document.getElementById('notif-email').checked ? 1 : 0,
+    notifications_push:  document.getElementById('notif-push').checked  ? 1 : 0,
+  });
+  show('notif-ok');
+  setTimeout(() => hide('notif-ok'), 2000);
+}
+
+// ── Dark mode ─────────────────────────────────────────
+async function toggleDarkMode() {
+  const isDark = document.getElementById('dark-mode-toggle').checked;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : '');
+  await api.post('/api/user/update', { dark_mode: isDark ? 1 : 0 });
+}
+
+// ── Avatar upload ─────────────────────────────────────
+async function uploadAvatar(input) {
+  const f = input.files[0]; if (!f) return;
+  const fd = new FormData(); fd.append('avatar', f);
+  const res  = await fetch('/api/user/avatar', { method: 'POST', body: fd });
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById('settings-avatar').innerHTML =
+      `<img src="${data.url}?t=${Date.now()}" alt="avatar">`;
+    toast.show('Photo updated! 🎉', '', 'success');
+  } else {
+    toast.show('Upload failed', data.error || '', 'error');
+  }
+}
+
+// ── Delete account ────────────────────────────────────
+function confirmDelete() {
+  if (confirm('Are you absolutely sure? This will permanently delete your account and all data. This CANNOT be undone.')) {
+    if (confirm('Last warning — are you sure?')) {
+      toast.show('Account deletion', 'Contact admin to complete deletion.', 'info');
+    }
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────
+function show(id)          { document.getElementById(id).style.display='block'; }
+function hide(id)          { document.getElementById(id).style.display='none';  }
+function showErr(id, msg)  { const el=document.getElementById(id); el.textContent=msg; el.style.display='block'; }
+
+document.addEventListener('DOMContentLoaded', loadSettings);
+</script>
+{% endblock %}

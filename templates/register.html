@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — Plant Green Inertia LMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet"
+      href="{{ url_for('static', filename='main.css') }}">
+  <style>
+    body { background: var(--green-900); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .auth-wrapper { display: flex; width: 100%; max-width: 480px; border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-lg); margin: 20px; }
+    .auth-right { flex: 1; background: var(--bg-card); padding: 44px 40px; }
+    .auth-right h1 { font-family: var(--font-display); font-size: 26px; font-weight: 800; color: var(--text-dark); margin-bottom: 6px; }
+    .auth-right .sub { font-size: 14px; color: var(--text-muted); margin-bottom: 28px; }
+    .error-msg { background: #fee2e2; border: 1px solid #fca5a5; color: var(--urgent); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .auth-footer { text-align: center; margin-top: 18px; font-size: 13px; color: var(--text-muted); }
+    .auth-footer a { color: var(--green-600); font-weight: 600; }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.6); font-size: 13px; margin-bottom: 20px; text-decoration: none; }
+    .back-link:hover { color: #fff; }
+  </style>
+</head>
+<body>
+<div style="position:fixed;top:20px;left:20px">
+  <a href="/login" class="back-link" style="color:rgba(255,255,255,0.6)">← Back to login</a>
+</div>
+<div class="app-layout" style="display:flex;align-items:center;justify-content:center;min-height:100vh">
+<div class="auth-wrapper">
+  <div class="auth-right">
+    <h1>Create Account 🌱</h1>
+    <p class="sub">Join Plant Green Inertia and start learning today</p>
+
+    <div class="error-msg" id="error-msg"></div>
+
+    <div class="form-group">
+      <label class="form-label">Full Name</label>
+      <input type="text" class="form-input" id="full_name" placeholder="Your full name">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input type="text" class="form-input" id="username" placeholder="username (no spaces)">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" class="form-input" id="email" placeholder="you@example.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input type="password" class="form-input" id="password" placeholder="Min 8 characters">
+    </div>
+
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:13px" id="reg-btn">
+      Create Account →
+    </button>
+
+    <div class="auth-footer">
+      Already have an account? <a href="/login">Sign in</a>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+  const btn = document.getElementById('reg-btn');
+  const errEl = document.getElementById('error-msg');
+
+  async function doRegister() {
+    const full_name = document.getElementById('full_name').value.trim();
+    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    if (!full_name || !username || !email || !password) { showErr('All fields are required.'); return; }
+    if (password.length < 8) { showErr('Password must be at least 8 characters.'); return; }
+
+    btn.textContent = 'Creating…'; btn.disabled = true;
+    const res = await fetch('/api/auth/register', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ full_name, username, email, password })
+    });
+    const data = await res.json();
+    if (data.success) { window.location.href = data.redirect; }
+    else { showErr(data.error || 'Registration failed'); btn.textContent = 'Create Account →'; btn.disabled = false; }
+  }
+
+  function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
+  btn.addEventListener('click', doRegister);
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
+</script>
+</body>
+</html>

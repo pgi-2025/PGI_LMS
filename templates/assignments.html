@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Assignments{% endblock %}
+{% block page_title %}Assignments{% endblock %}
+{% block page_subtitle %}Track your pending and completed assignments{% endblock %}
+
+{% block extra_css %}
+<style>
+.assign-filters { display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
+.assign-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.assign-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm); transition: all 0.2s; }
+.assign-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.assign-card.overdue { border-color: #fca5a5; background: #fff5f5; }
+.assign-card.overdue .assign-title { color: #1f2937; }
+.assign-card.overdue .assign-course { color: #6b7280; }
+.assign-card.overdue .assign-meta { color: #6b7280; }
+.assign-card.submitted { border-color: var(--green-200); }
+.assign-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.assign-type-icon { font-size: 24px; }
+.assign-status-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; }
+.status-pending { background: #fff7ed; color: #c2410c; }
+.status-submitted { background: #dcfce7; color: var(--green-700); }
+.status-graded { background: #e0e7ff; color: #3730a3; }
+.assign-title { font-weight: 700; font-size: 15px; color: var(--text-dark); margin-bottom: 4px; }
+.assign-course { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+.assign-meta { display: flex; gap: 14px; font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+.assign-footer { display: flex; align-items: center; justify-content: space-between; }
+.assign-score { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--green-600); }
+.assign-score span { font-size: 12px; color: var(--text-muted); font-family: var(--font-body); font-weight: 400; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="filter-tabs tabs-assignments">
+  <button class="tab active" onclick="filterAssignments('all', this)">All</button>
+  <button class="tab" onclick="filterAssignments('pending', this)">Pending</button>
+  <button class="tab" onclick="filterAssignments('submitted', this)">Submitted</button>
+  <button class="tab" onclick="filterAssignments('graded', this)">Graded</button>
+</div>
+
+<div class="assign-grid" id="assign-grid">
+  <div class="skeleton" style="height:200px;border-radius:var(--radius-lg)"></div>
+  <div class="skeleton" style="height:200px;border-radius:var(--radius-lg)"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let allAssignments = [];
+
+async function loadAssignments() {
+  allAssignments = await api.get('/api/assignments');
+  if (!allAssignments) return;
+  renderAssignments(allAssignments);
+}
+
+const typeIcons = { 'Assignment': '📝', 'Quiz': '🧠', 'Project': '🎯', 'Live Session': '🔴' };
+
+function renderAssignments(items) {
+  const grid = document.getElementById('assign-grid');
+  if (!items.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📝</div><p>No assignments found.</p></div>';
+    return;
+  }
+
+  grid.innerHTML = items.map(a => {
+    const status = a.submission_status || 'pending';
+    const due = new Date(a.due_date.replace(' ', 'T'));
+    const now = new Date();
+    const isOverdue = due < now && status === 'pending';
+    const dueLabel = isOverdue ? '⚠️ Overdue' : formatDueDate(a.due_date);
+
+    return `
+    <div class="assign-card ${isOverdue ? 'overdue' : ''} ${status === 'submitted' || status === 'graded' ? 'submitted' : ''}">
+      <div class="assign-header">
+        <div class="assign-type-icon">${typeIcons[a.type] || '📝'}</div>
+        <span class="assign-status-badge status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+      </div>
+      <div class="assign-title">${a.title}</div>
+      <div class="assign-course">📚 ${a.course_title}</div>
+      <div class="assign-meta">
+        <span>📅 ${dueLabel}</span>
+        <span>⚡ ${a.xp_reward} XP</span>
+        <span>📊 ${a.max_score} pts</span>
+      </div>
+      <div class="assign-footer">
+        ${a.score !== null ? `<div class="assign-score">${a.score}<span>/ ${a.max_score}</span></div>` : '<div></div>'}
+        ${status === 'pending' ? `
+          <button class="btn btn-primary btn-sm" onclick="submitAssignment(${a.id}, this)">
+            ${a.type === 'Quiz' ? '🧠 Take Quiz' : 'Submit →'}
+          </button>
+        ` : status === 'submitted' ? `
+          <span style="font-size:12px;color:var(--green-600)">✅ Submitted — awaiting grade</span>
+        ` : `
+          <span style="font-size:12px;color:#4338ca">✅ Graded: ${a.score}/${a.max_score}</span>
+        `}
+      </div>
+    </div>
+    `;
+  }).join('');
+}
+
+function filterAssignments(filter, btn) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  let filtered = allAssignments;
+  if (filter !== 'all') filtered = allAssignments.filter(a => (a.submission_status || 'pending') === filter);
+  renderAssignments(filtered);
+}
+
+async function submitAssignment(id, btn) {
+  const assignment = allAssignments.find(a => a.id === id);
+  if (assignment && assignment.type === 'Quiz') {
+    window.location.href = '/quiz?id=' + id;
+    return;
+  }
+  btn.textContent = 'Submitting…';
+  btn.disabled = true;
+  const data = await api.post('/api/assignments/submit', { assignment_id: id });
+  if (data.success) {
+    toast.show('Submitted!', 'Assignment submitted successfully', 'success');
+    loadAssignments();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadAssignments);
+</script>
+{% endblock %}

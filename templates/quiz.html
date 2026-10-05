@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block title %}Quiz & Tests{% endblock %}
+{% block page_title %}Quiz & Tests{% endblock %}
+{% block page_subtitle %}Test your knowledge and earn XP{% endblock %}
+
+{% block extra_css %}
+<style>
+.quiz-select-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.quiz-select-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; cursor: pointer; transition: all 0.2s; }
+.quiz-select-card:hover { box-shadow: var(--shadow-md); border-color: var(--green-300); transform: translateY(-2px); }
+.quiz-select-card.taken { opacity: 0.6; pointer-events: none; }
+
+/* Quiz taking UI */
+#quiz-ui { display: none; }
+.quiz-progress-bar { height: 6px; background: var(--green-100); border-radius: 99px; overflow: hidden; margin-bottom: 28px; }
+.quiz-progress-fill { height: 100%; background: linear-gradient(90deg, var(--green-500), var(--green-300)); border-radius: 99px; transition: width 0.5s ease; }
+.question-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 30px; box-shadow: var(--shadow-md); }
+.question-num { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+.question-text { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text-dark); margin-bottom: 28px; line-height: 1.4; }
+.options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.option-btn {
+  padding: 16px 20px; border-radius: var(--radius-md);
+  background: var(--bg); border: 2px solid var(--border);
+  text-align: left; font-size: 14px; font-weight: 500;
+  color: var(--text-dark); cursor: pointer; transition: all 0.2s;
+}
+.option-btn:hover { border-color: var(--green-400); background: var(--green-50); }
+.option-btn.selected { border-color: var(--green-500); background: var(--green-50); color: var(--green-700); font-weight: 700; }
+.option-btn.correct { border-color: var(--success); background: #dcfce7; color: #15803d; }
+.option-btn.wrong { border-color: var(--urgent); background: #fee2e2; color: var(--urgent); }
+.quiz-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
+.quiz-counter { font-size: 14px; color: var(--text-muted); }
+
+/* Result panel */
+#quiz-result { display: none; text-align: center; padding: 40px; background: var(--bg-card); border-radius: var(--radius-xl); border: 1px solid var(--border); }
+.result-emoji { font-size: 56px; margin-bottom: 16px; }
+.result-score { font-family: var(--font-display); font-size: 56px; font-weight: 800; color: var(--green-600); }
+.result-label { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+.result-msg { font-size: 16px; font-weight: 600; margin: 16px 0 24px; color: var(--text-dark); }
+
+@media (max-width: 600px) { .options-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="quiz-select">
+  <p class="text-muted" style="margin-bottom:18px">Select a quiz to begin. Each quiz has a time component — answer carefully for maximum XP!</p>
+  <div class="quiz-select-grid" id="quiz-list">
+    <div class="skeleton" style="height:160px;border-radius:var(--radius-lg)"></div>
+    <div class="skeleton" style="height:160px;border-radius:var(--radius-lg)"></div>
+  </div>
+</div>
+
+<div id="quiz-ui">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div>
+      <h2 id="quiz-title" style="font-family:var(--font-display);font-weight:700"></h2>
+      <p id="quiz-course" class="text-muted text-sm"></p>
+    </div>
+    <div id="quiz-timer" style="font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--green-600)"></div>
+  </div>
+
+  <div class="quiz-progress-bar">
+    <div class="quiz-progress-fill" id="quiz-progress-fill" style="width:0%"></div>
+  </div>
+
+  <div class="question-card">
+    <div class="question-num" id="question-num">Question 1 of 5</div>
+    <div class="question-text" id="question-text">Loading…</div>
+    <div class="options-grid" id="options-grid"></div>
+  </div>
+
+  <div class="quiz-nav">
+    <div class="quiz-counter" id="quiz-answered">0 / 0 answered</div>
+    <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()">Next →</button>
+  </div>
+</div>
+
+<div id="quiz-result">
+  <div class="result-emoji" id="result-emoji">🏆</div>
+  <div class="result-score" id="result-score">—</div>
+  <div class="result-label">Score</div>
+  <div class="result-msg" id="result-msg">Great job!</div>
+  <div style="display:flex;gap:12px;justify-content:center">
+    <button class="btn btn-outline" onclick="backToQuizList()">← Back to Quizzes</button>
+    <a href="/assignments" class="btn btn-primary">View All Assignments →</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let questions = [], answers = {}, currentQ = 0, currentAssignId = null, timer = null, timeLeft = 0;
+
+async function loadQuizList() {
+  const assignments = await api.get('/api/assignments');
+  if (!assignments) return;
+
+  const quizzes = assignments.filter(a => a.type === 'Quiz');
+  const list = document.getElementById('quiz-list');
+
+  if (!quizzes.length) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🧠</div><p>No quizzes available yet.</p></div>';
+    return;
+  }
+
+  list.innerHTML = quizzes.map(q => {
+    const taken = q.submission_status === 'graded';
+    return `
+    <div class="quiz-select-card ${taken ? 'taken' : ''}" onclick="${taken ? '' : `startQuiz(${q.id})`}">
+      <div style="font-size:28px;margin-bottom:10px">🧠</div>
+      <div style="font-weight:700;font-size:15px;margin-bottom:4px">${q.title}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">📚 ${q.course_title}</div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted)">
+        <span>⚡ ${q.xp_reward} XP</span>
+        <span>${taken ? `✅ Score: ${q.score}/${q.max_score}` : '🟢 Available'}</span>
+      </div>
+    </div>
+    `;
+  }).join('');
+
+  // Auto-load quiz from URL param
+  const urlParams = new URLSearchParams(window.location.search);
+  const qid = urlParams.get('id');
+  if (qid) startQuiz(parseInt(qid));
+}
+
+async function startQuiz(assignmentId) {
+  const data = await api.get(`/api/quiz/${assignmentId}`);
+  if (!data || !data.questions.length) {
+    toast.show('No questions', 'This quiz has no questions yet.', 'error');
+    return;
+  }
+
+  currentAssignId = assignmentId;
+  questions = data.questions;
+  answers = {};
+  currentQ = 0;
+
+  document.getElementById('quiz-title').textContent = data.assignment.title;
+  document.getElementById('quiz-course').textContent = '📚 ' + (data.assignment.course_title || 'Course');
+  document.getElementById('quiz-select').style.display = 'none';
+  document.getElementById('quiz-ui').style.display = 'block';
+
+  // Timer: 2 min per question
+  timeLeft = questions.length * 120;
+  startTimer();
+  renderQuestion();
+}
+
+function startTimer() {
+  clearInterval(timer);
+  const el = document.getElementById('quiz-timer');
+  timer = setInterval(() => {
+    timeLeft--;
+    const m = Math.floor(timeLeft / 60);
+    const s = timeLeft % 60;
+    el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    if (timeLeft <= 60) el.style.color = 'var(--urgent)';
+    if (timeLeft <= 0) { clearInterval(timer); submitQuiz(); }
+  }, 1000);
+}
+
+function renderQuestion() {
+  const q = questions[currentQ];
+  document.getElementById('question-num').textContent = `Question ${currentQ + 1} of ${questions.length}`;
+  document.getElementById('question-text').textContent = q.question;
+  document.getElementById('quiz-progress-fill').style.width = `${((currentQ) / questions.length) * 100}%`;
+  document.getElementById('quiz-answered').textContent = `${Object.keys(answers).length} / ${questions.length} answered`;
+
+  const isLast = currentQ === questions.length - 1;
+  document.getElementById('next-btn').textContent = isLast ? '🏁 Submit Quiz' : 'Next →';
+
+  const opts = [
+    { key: 'a', text: q.option_a },
+    { key: 'b', text: q.option_b },
+    { key: 'c', text: q.option_c },
+    { key: 'd', text: q.option_d }
+  ].filter(o => o.text);
+
+  const selected = answers[q.id];
+  document.getElementById('options-grid').innerHTML = opts.map(o => `
+    <button class="option-btn ${selected === o.key ? 'selected' : ''}" onclick="selectOption('${o.key}')">
+      <strong>${o.key.toUpperCase()}.</strong> ${o.text}
+    </button>
+  `).join('');
+}
+
+function selectOption(key) {
+  answers[questions[currentQ].id] = key;
+  renderQuestion();
+}
+
+function nextQuestion() {
+  if (currentQ < questions.length - 1) {
+    currentQ++;
+    renderQuestion();
+  } else {
+    submitQuiz();
+  }
+}
+
+async function submitQuiz() {
+  clearInterval(timer);
+  const data = await api.post('/api/quiz/submit', { assignment_id: currentAssignId, answers });
+
+  document.getElementById('quiz-ui').style.display = 'none';
+  const result = document.getElementById('quiz-result');
+  result.style.display = 'block';
+
+  document.getElementById('result-score').textContent = `${data.score}%`;
+  document.getElementById('quiz-progress-fill').style.width = '100%';
+
+  let emoji, msg;
+  if (data.score >= 90) { emoji = '🏆'; msg = 'Outstanding! You aced it!'; }
+  else if (data.score >= 75) { emoji = '🎉'; msg = 'Great job! Well done!'; }
+  else if (data.score >= 60) { emoji = '👍'; msg = 'Good effort! Keep practicing.'; }
+  else { emoji = '📖'; msg = 'Keep studying — you\'ll get there!'; }
+
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-msg').textContent = `${msg} (${data.correct}/${data.total} correct)`;
+}
+
+function backToQuizList() {
+  document.getElementById('quiz-result').style.display = 'none';
+  document.getElementById('quiz-select').style.display = 'block';
+  loadQuizList();
+}
+
+document.addEventListener('DOMContentLoaded', loadQuizList);
+</script>
+{% endblock %}

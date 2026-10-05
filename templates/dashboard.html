@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Good to see you — keep the momentum going! 🚀{% endblock %}
+
+{% block content %}
+
+<!-- ── Stats Grid ──────────────────────────────────────── -->
+<div class="stats-grid" id="stats-grid">
+  <!-- Skeletons while loading -->
+  <div class="stat-card skeleton-card" id="sc-courses">
+    <div class="skeleton" style="height:14px;width:60px;border-radius:4px;margin-bottom:12px"></div>
+    <div class="skeleton" style="height:36px;width:50px;border-radius:4px"></div>
+    <div class="skeleton" style="height:11px;width:90px;border-radius:4px;margin-top:8px"></div>
+  </div>
+  <div class="stat-card skeleton-card" id="sc-hours">
+    <div class="skeleton" style="height:14px;width:60px;border-radius:4px;margin-bottom:12px"></div>
+    <div class="skeleton" style="height:36px;width:60px;border-radius:4px"></div>
+    <div class="skeleton" style="height:11px;width:90px;border-radius:4px;margin-top:8px"></div>
+  </div>
+  <div class="stat-card skeleton-card" id="sc-xp">
+    <div class="skeleton" style="height:14px;width:60px;border-radius:4px;margin-bottom:12px"></div>
+    <div class="skeleton" style="height:36px;width:55px;border-radius:4px"></div>
+    <div class="skeleton" style="height:11px;width:90px;border-radius:4px;margin-top:8px"></div>
+  </div>
+  <div class="stat-card skeleton-card" id="sc-lessons">
+    <div class="skeleton" style="height:14px;width:60px;border-radius:4px;margin-bottom:12px"></div>
+    <div class="skeleton" style="height:36px;width:45px;border-radius:4px"></div>
+    <div class="skeleton" style="height:11px;width:90px;border-radius:4px;margin-top:8px"></div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Left: Courses + Achievements -->
+  <div>
+    <div class="section-header">
+      <div class="section-title">📚 Active Courses</div>
+      <a href="/my-courses" class="view-all">View all →</a>
+    </div>
+    <div class="course-list" id="course-list">
+      <div class="skeleton" style="height:90px;border-radius:var(--radius-lg)"></div>
+      <div class="skeleton" style="height:90px;border-radius:var(--radius-lg);margin-top:12px"></div>
+    </div>
+
+    <div class="section-header" style="margin-top:28px">
+      <div class="section-title">🏆 Achievements</div>
+      <a href="/profile" class="view-all">All badges →</a>
+    </div>
+    <div class="panel" style="padding:16px">
+      <div class="achievements-grid" id="achievements-grid">
+        <div class="skeleton" style="height:80px;border-radius:var(--radius-md)"></div>
+        <div class="skeleton" style="height:80px;border-radius:var(--radius-md)"></div>
+        <div class="skeleton" style="height:80px;border-radius:var(--radius-md)"></div>
+        <div class="skeleton" style="height:80px;border-radius:var(--radius-md)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Streak + Tasks -->
+  <div>
+    <div class="panel" style="margin-bottom:20px">
+      <div class="section-title">🔥 Study Streak</div>
+      <div class="streak-grid" id="streak-grid"></div>
+      <div class="streak-stats">
+        <span>🔥 Current: <strong id="streak-current">0</strong> days</span>
+        <span>Best: <strong id="streak-best">0</strong> days</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="section-header">
+        <div class="section-title">📋 Upcoming Tasks</div>
+        <a href="/assignments" class="view-all">View all →</a>
+      </div>
+      <div class="task-list" id="task-list">
+        <div class="skeleton" style="height:56px;border-radius:var(--radius-md)"></div>
+        <div class="skeleton" style="height:56px;border-radius:var(--radius-md);margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Greeting based on time of day ───────────────────────
+function getGreeting(name) {
+  const h = new Date().getHours();
+  const part = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+  return `Good ${part}, ${name} — keep the momentum going! 🚀`;
+}
+
+// ── Render a stat card with real data ───────────────────
+function renderStatCard(id, icon, value, label, badgeText, badgeClass) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.outerHTML = `
+    <div class="stat-card" id="${id}">
+      <div class="stat-badge ${badgeClass}">${badgeText}</div>
+      <div class="stat-icon">${icon}</div>
+      <div class="stat-value">${value}</div>
+      <div class="stat-label">${label}</div>
+    </div>`;
+}
+
+// ── Safe value picker ───────────────────────────────────
+// Returns the first value that is not undefined / null / NaN / empty string
+// Returns the first value that is strictly defined (not undefined/null/NaN/'').
+// 0 IS valid — new users legitimately have 0 XP, 0 hours, etc.
+// We convert to Number so "0" string also works, but keep original if not numeric context.
+function pick(...vals) {
+  for (const v of vals) {
+    if (v === undefined || v === null || v === '') continue;
+    const n = Number(v);
+    if (!Number.isNaN(n)) return n;
+  }
+  return 0;
+}
+
+// ── Normalise badge name for fuzzy matching ─────────────
+function normBadge(s) {
+  return (s || '').toLowerCase().replace(/[\s_\-]/g, '');
+}
+
+// ── Main dashboard loader ───────────────────────────────
+async function loadDashboard() {
+  // Fetch dashboard + user in parallel for maximum data coverage
+console.log("Loading dashboard...");
+
+const dashboardPromise = api.get('/api/dashboard');
+const userPromise = api.get('/api/user/me');
+
+const [data, me] = await Promise.all([
+    dashboardPromise,
+    userPromise
+]);
+
+console.log("Dashboard API:", data);
+console.log("User API:", me);
+  if (!data) return;
+
+  // Support both flat  { total_xp, streak_days, … }
+  // and nested         { stats: { total_xp, … }, user: {…} }
+  const s    = data.stats || data;
+  const user = data.user  || data.me || me || {};
+
+  // ── Resolve every stat with maximum fallback coverage ──
+  // Each stat tries the dashboard response first (s = data.stats || data),
+  // then falls back to user/me — but pick() stops at the FIRST defined value,
+  // so a real 0 from the server is never skipped over.
+  const activeCourses = pick(
+    s.active_courses, s.courses_active, s.enrolled_courses,
+    Array.isArray(data.courses) ? data.courses.length : undefined,
+    user.active_courses, (me||{}).active_courses
+  );
+  const totalHours = pick(
+    s.total_hours, s.hours_learned, s.study_hours,
+    user.total_hours, user.hours_learned,
+    (me||{}).total_hours, (me||{}).hours_learned
+  );
+  const totalXP = pick(
+    s.total_xp, s.xp, s.xp_total,
+    user.xp, user.total_xp,
+    (me||{}).xp, (me||{}).total_xp
+  );
+  const lessonsDone = pick(
+    s.lessons_done, s.lessons_completed, s.completed_lessons,
+    user.lessons_done, user.lessons_completed,
+    (me||{}).lessons_done, (me||{}).lessons_completed
+  );
+  const lessonsToday = pick(
+    s.lessons_today, s.lessons_done_today,
+    user.lessons_today, (me||{}).lessons_today
+  );
+  const streakDays = pick(
+    s.streak_days, s.current_streak,
+    user.streak_days, user.current_streak,
+    (me||{}).streak_days, (me||{}).current_streak
+  );
+  const bestStreak = pick(
+    s.best_streak, s.streak_best,
+    user.best_streak, user.streak_best,
+    (me||{}).best_streak, streakDays
+  );
+  const level = pick(
+    s.level, user.level, (me||{}).level
+  ) || 1;
+  const userName = user.full_name || me?.full_name || 'there';
+
+  // ── Greeting ────────────────────────────────────────────
+  const greetEl = document.querySelector('.topbar-title p');
+  if (greetEl) greetEl.textContent = getGreeting(userName);
+
+  // ── Stat cards ──────────────────────────────────────────
+  renderStatCard('sc-courses',
+    '📋', activeCourses, 'Active Courses',
+    activeCourses > 0 ? `+${activeCourses} enrolled` : 'Enroll now', 'green'
+  );
+  renderStatCard('sc-hours',
+    '⏰', totalHours + 'h', 'Hours Learned',
+    totalHours > 0 ? `${totalHours}h total` : 'Start learning', 'blue'
+  );
+  renderStatCard('sc-xp',
+    '⚡', totalXP, 'Total XP',
+    `Level ${level}`, 'orange'
+  );
+  renderStatCard('sc-lessons',
+    '✅', lessonsDone, 'Lessons Done',
+    lessonsToday > 0 ? `${lessonsToday} today` : 'None today', 'green'
+  );
+
+  // ── Topbar streak badge ─────────────────────────────────
+  const sc = document.querySelector('.streak-count');
+  if (sc) sc.textContent = streakDays;
+
+  // ── Streak panel ────────────────────────────────────────
+  document.getElementById('streak-current').textContent = streakDays;
+  document.getElementById('streak-best').textContent    = bestStreak;
+
+  // Build streak date set — use API array if present,
+  // otherwise derive from streak_days count (last N consecutive days)
+  const streakDates = new Set(
+    Array.isArray(data.streak_dates) && data.streak_dates.length
+      ? data.streak_dates
+      : (() => {
+          const dates = [], now = new Date();
+          for (let i = 0; i < streakDays; i++) {
+            const d = new Date(now);
+            d.setDate(now.getDate() - i);
+            dates.push(d.toISOString().slice(0, 10));
+          }
+          return dates;
+        })()
+  );
+
+  const grid  = document.getElementById('streak-grid');
+  const today = new Date();
+  grid.innerHTML = '';
+  for (let i = 20; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const ds      = d.toISOString().slice(0, 10);
+    const isToday  = i === 0;
+    const isActive = streakDates.has(ds);
+    const cls = ['streak-day', isActive ? 'active' : '', isToday ? 'today' : '']
+                  .filter(Boolean).join(' ');
+    grid.insertAdjacentHTML('beforeend', `<div class="${cls}" title="${ds}"></div>`);
+  }
+
+  // ── Active courses list ─────────────────────────────────
+  const courses    = Array.isArray(data.courses) ? data.courses : [];
+  const courseList = document.getElementById('course-list');
+  if (!courses.length) {
+    courseList.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📚</div>
+        <p>No active courses yet. <a href="/my-courses" style="color:var(--green-600);font-weight:600">Browse courses →</a></p>
+      </div>`;
+  } else {
+    courseList.innerHTML = courses.map(c => `
+      <div class="course-card">
+        <div class="course-icon">${getCourseIcon(c.title)}</div>
+        <div class="course-info">
+          <div class="course-title">${c.title}</div>
+          <div class="course-meta">
+            Module ${c.current_module || 1} of ${c.total_modules || '?'}
+            · ${c.progress_percent || 0}% complete
+          </div>
+          <div class="course-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:${c.progress_percent || 0}%"></div>
+            </div>
+            <div class="progress-text">${c.progress_percent || 0}%</div>
+          </div>
+        </div>
+        <div class="course-actions">
+          <a href="/my-courses" class="btn btn-primary btn-sm">
+            ${c.progress_percent === 100 ? '🔁 Review' : 'Resume →'}
+          </a>
+          <span class="mode-tag mode-${c.mode === 'LIVE' ? 'live' : c.mode === 'NEW' ? 'new' : 'self'}">
+            ${c.mode === 'LIVE' ? '🔴 LIVE' : c.mode === 'NEW' ? '✨ NEW' : c.mode || 'SELF-PACED'}
+          </span>
+        </div>
+      </div>`).join('');
+  }
+
+  // ── Tasks list ──────────────────────────────────────────
+  const tasks    = Array.isArray(data.tasks) ? data.tasks : [];
+  const taskList = document.getElementById('task-list');
+  if (!tasks.length) {
+    taskList.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">✅</div>
+        <p>All caught up! No pending tasks.</p>
+      </div>`;
+  } else {
+    taskList.innerHTML = tasks.map(t => {
+      const isDone     = t.status === 'submitted' || t.status === 'graded';
+      const badgeClass = t.type === 'Quiz'         ? 'quiz'
+                       : t.type === 'Live Session' ? 'live'
+                       : isDone                    ? 'done'
+                                                   : 'urgent';
+      const badgeText  = t.type === 'Quiz'         ? 'Quiz'
+                       : t.type === 'Live Session' ? 'Live'
+                       : isDone                    ? 'Done'
+                                                   : 'Urgent';
+      return `
+        <div class="task-item">
+          <div class="task-checkbox ${isDone ? 'done' : ''}">${isDone ? '✓' : ''}</div>
+          <div class="task-info">
+            <div class="task-title" style="${isDone ? 'text-decoration:line-through;opacity:.5' : ''}">
+              ${t.title}
+            </div>
+            <div class="task-due">${formatDueDate(t.due_date)}</div>
+          </div>
+          <span class="task-badge ${badgeClass}">${badgeText}</span>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Achievements grid ───────────────────────────────────
+  const ALL_BADGES = [
+    { icon:'🚀', name:'First Login'   },
+    { icon:'🔥', name:'7-Day Streak'  },
+    { icon:'📚', name:'10 Lessons'    },
+    { icon:'⚡', name:'500 XP Club'   },
+    { icon:'🏆', name:'Course Master' },
+    { icon:'🎯', name:'Quiz Ace'      },
+    { icon:'💎', name:'30-Day Streak' },
+    { icon:'👑', name:'1000 XP'       },
+  ];
+
+  // Collect earned badge names from every possible API field, normalised
+  const rawBadges   = data.achievements || data.badges || me?.badges || [];
+  const earnedNorms = new Set(rawBadges.map(a => normBadge(a.title || a.name || '')));
+
+  // Auto-unlock badges that can be derived from live stats
+  earnedNorms.add(normBadge('First Login'));             // always earned — user is logged in
+  if (totalXP    >= 500)  earnedNorms.add(normBadge('500 XP Club'));
+  if (totalXP    >= 1000) earnedNorms.add(normBadge('1000 XP'));
+  if (streakDays >= 7)    earnedNorms.add(normBadge('7-Day Streak'));
+  if (streakDays >= 30)   earnedNorms.add(normBadge('30-Day Streak'));
+  if (lessonsDone >= 10)  earnedNorms.add(normBadge('10 Lessons'));
+  if (activeCourses === 0 && courses.some(c => c.progress_percent === 100))
+                          earnedNorms.add(normBadge('Course Master'));
+
+  document.getElementById('achievements-grid').innerHTML = ALL_BADGES.map(b => {
+    const earned = earnedNorms.has(normBadge(b.name));
+    return `
+      <div class="achievement-item ${earned ? '' : 'locked'}" title="${b.name}">
+        <div class="achievement-icon">${b.icon}</div>
+        <div class="achievement-name">${b.name}</div>
+      </div>`;
+  }).join('');
+}
+
+document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+{% endblock %}
