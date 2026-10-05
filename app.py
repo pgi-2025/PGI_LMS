@@ -745,9 +745,13 @@ def has_paid(uid, course_id):
     u = one(supabase.table('users').select('is_admin').eq('id', uid).execute())
     if u and u.get('is_admin'):
         return True
-    p = rows(supabase.table('course_payments').select('id').eq('user_id', uid)
-             .eq('course_id', course_id).eq('status', 'paid').limit(1).execute())
-    return bool(p)
+    try:
+        p = rows(supabase.table('course_payments').select('id').eq('user_id', uid)
+                 .eq('course_id', course_id).eq('status', 'paid').limit(1).execute())
+        return bool(p)
+    except Exception as e:   # e.g. course_payments table not created yet
+        print('PAYMENT CHECK FAILED (run add_payments_table.sql):', e)
+        return False
 
 
 def is_lesson_locked(uid, lesson_id):
